@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ChatWindow } from "@/components/chat-window"
+import { ChatWindowRealtime } from "@/components/chat-window-realtime"
 
 interface Feedback {
   id: string
@@ -336,7 +336,7 @@ export function FeedbackManager() {
         )}
 
         {chatAberto && (
-          <ChatWindow
+          <ChatWindowRealtime
             feedbackId={chatAberto.feedbackId}
             titulo={chatAberto.titulo}
             onClose={() => setChatAberto(null)}

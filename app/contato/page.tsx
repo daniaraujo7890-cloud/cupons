@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
-import { ContactForm } from "@/components/contact-form"
+import { ContactFormRealtime } from "@/components/contact-form-realtime"
 import { CustomerFeedback } from "@/components/customer-feedback"
 
 export default function ContatoPage() {
@@ -8,7 +8,7 @@ export default function ContatoPage() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1">
-        <ContactForm />
+        <ContactFormRealtime />
         <CustomerFeedback />
       </main>
       <Footer />

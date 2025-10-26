@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { getCurrentUser } from "@/lib/auth"
 
-// GET → Busca todas as mensagens de um feedback (chat)
 export async function GET(request: NextRequest, { params }: { params: { feedbackId: string } }) {
   try {
     const user = await getCurrentUser()
@@ -12,7 +11,6 @@ export async function GET(request: NextRequest, { params }: { params: { feedback
 
     const feedbackId = params.feedbackId
 
-    // Busca mensagens do feedback (chat)
     const mensagens = await query(
       `SELECT id, feedback_id, remetente, mensagem, data, lida
        FROM mensagens_chat
@@ -21,7 +19,6 @@ export async function GET(request: NextRequest, { params }: { params: { feedback
       [feedbackId]
     )
 
-    // Define o lado oposto (pra marcar como lidas)
     const outroRemetente = user.papel === "admin" ? "usuario" : "admin"
 
     await query(
@@ -31,7 +28,6 @@ export async function GET(request: NextRequest, { params }: { params: { feedback
       [feedbackId, outroRemetente]
     )
 
-    // Atualiza status do feedback
     if (user.papel === "admin") {
       await query(
         `UPDATE feedback SET status = 'lido' WHERE id = ? AND status = 'novo'`,
@@ -46,7 +42,6 @@ export async function GET(request: NextRequest, { params }: { params: { feedback
   }
 }
 
-// POST → Envia nova mensagem (usuário ou admin)
 export async function POST(request: NextRequest, { params }: { params: { feedbackId: string } }) {
   try {
     const user = await getCurrentUser()
@@ -63,27 +58,29 @@ export async function POST(request: NextRequest, { params }: { params: { feedbac
 
     const remetente = user.papel === "admin" ? "admin" : "usuario"
 
-    // Insere a mensagem no chat
     const result: any = await query(
       `INSERT INTO mensagens_chat (feedback_id, remetente, mensagem, data, lida)
        VALUES (?, ?, ?, NOW(), FALSE)`,
       [feedbackId, remetente, mensagem]
     )
 
-    // Atualiza status do feedback
     if (user.papel === "admin") {
       await query(`UPDATE feedback SET status = 'respondido' WHERE id = ?`, [feedbackId])
     } else {
       await query(`UPDATE feedback SET status = 'novo' WHERE id = ?`, [feedbackId])
     }
 
-    // Retorna a mensagem criada
     const [novaMensagem] = await query(
       `SELECT id, feedback_id, remetente, mensagem, data, lida
        FROM mensagens_chat
        WHERE id = ?`,
       [result.insertId]
     )
+
+    if (global.io) {
+      global.io.to(`feedback_${feedbackId}`).emit("nova_mensagem", novaMensagem)
+      console.log(`📡 Mensagem emitida via Socket.IO para feedback_${feedbackId}`)
+    }
 
     return NextResponse.json({ success: true, mensagem: novaMensagem }, { status: 201 })
   } catch (error) {

@@ -30,17 +30,27 @@ export async function POST(request: Request) {
 
     console.log("[v0] Feedback inserido com sucesso:", { feedbackId, ...result })
 
-    // Inserir mensagem no chat automaticamente
     try {
-      await query(
+      const chatResult: any = await query(
         `INSERT INTO mensagens_chat (feedback_id, remetente, mensagem, data, lida)
          VALUES (?, 'usuario', ?, NOW(), FALSE)`,
         [feedbackId, mensagem],
       )
       console.log("[v0] Mensagem do feedback adicionada ao chat com sucesso")
+
+      const [novaMensagem] = await query(
+        `SELECT id, feedback_id, remetente, mensagem, data, lida
+         FROM mensagens_chat
+         WHERE id = ?`,
+        [chatResult.insertId]
+      )
+
+      if (global.io) {
+        global.io.to(`feedback_${feedbackId}`).emit("nova_mensagem", novaMensagem)
+        console.log(`📡 Mensagem inicial emitida via Socket.IO para feedback_${feedbackId}`)
+      }
     } catch (chatError) {
       console.error("[v0] Erro ao inserir mensagem no chat:", chatError)
-      // Não falha o feedback se o chat der erro, apenas loga
     }
 
     return NextResponse.json(
